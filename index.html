@@ -619,6 +619,29 @@
   ::-webkit-scrollbar-track { background:transparent; }
   ::-webkit-scrollbar-thumb { background:var(--border);border-radius:4px; }
 
+  /* ── Home Search Bar ── */
+  .home-search-wrap { margin-bottom:16px; }
+  .home-search-box {
+    display:flex;align-items:center;gap:10px;
+    background:#fff;border:1.5px solid var(--border);border-radius:12px;
+    padding:11px 14px;box-shadow:var(--shadow);transition:.2s;
+  }
+  .home-search-box:focus-within {
+    border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-light);
+  }
+  .home-search-box svg { color:var(--text-3);flex-shrink:0; }
+  .home-search-input {
+    flex:1;border:none;outline:none;
+    font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);background:transparent;
+  }
+  .home-search-input::placeholder { color:var(--text-3); }
+  .home-search-clear {
+    border:none;background:var(--bg);color:var(--text-2);cursor:pointer;
+    width:22px;height:22px;border-radius:50%;font-size:13px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .home-search-clear:hover { background:var(--border); }
+
   @media (max-width:380px) {
     .form-row { grid-template-columns:1fr; }
     .detail-grid { grid-template-columns:1fr; }
@@ -748,20 +771,20 @@
         </button>
       </div>
 
-      <!-- Stats -->
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-num" id="stat-total" style="color:var(--blue)">0</div>
-          <div class="stat-label">Total Kendaraan</div>
+      <!-- Search Bar -->
+      <div class="home-search-wrap">
+        <div class="home-search-box">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="home-search-input" id="homeSearch" type="text" placeholder="Cari nama atau plat kendaraan..." oninput="handleHomeSearch(this.value)">
+          <button class="home-search-clear" id="homeSearchClear" onclick="clearHomeSearch()" style="display:none">✕</button>
         </div>
-        <div class="stat-card">
-          <div class="stat-num" id="stat-aktif" style="color:var(--green)">0</div>
-          <div class="stat-label">Sedang Disewa</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="stat-offline" style="color:var(--red)">0</div>
-          <div class="stat-label">GPS Offline</div>
-        </div>
+      </div>
+
+      <!-- Hidden stat elements — dipertahankan agar JS tidak error -->
+      <div style="display:none" aria-hidden="true">
+        <span id="stat-total">0</span>
+        <span id="stat-aktif">0</span>
+        <span id="stat-offline">0</span>
       </div>
 
       <!-- Notif Alert -->
@@ -1645,6 +1668,21 @@ function exportData() {
   a.download = 'rentrack-data.json';
   a.click();
   showToast('📥 Data berhasil diekspor');
+}
+
+// ─── Home Search ──────────────────────────────────────────
+function handleHomeSearch(val) {
+  const clearBtn = document.getElementById('homeSearchClear');
+  if (clearBtn) clearBtn.style.display = val ? 'flex' : 'none';
+  renderVehicles(val.toLowerCase());
+}
+
+function clearHomeSearch() {
+  const input = document.getElementById('homeSearch');
+  if (input) input.value = '';
+  const clearBtn = document.getElementById('homeSearchClear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderVehicles('');
 }
 
 // ─── Pages ────────────────────────────────────────────────
