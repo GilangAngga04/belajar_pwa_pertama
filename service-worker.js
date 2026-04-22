@@ -1,27 +1,24 @@
-const CACHE_NAME = "rentrack-v5";
+const CACHE_NAME = "rentrack-v7";
 const BASE_URL = self.registration.scope;
 
-const urlsToCache = [
-  `${BASE_URL}`,
-  `${BASE_URL}index.html`,
+const STATIC_ASSETS = [
   `${BASE_URL}offline.html`,
   `${BASE_URL}manifest.json`,
-  `${BASE_URL}assets/style.css`,
   `${BASE_URL}icons/app-icon-192.png`,
   `${BASE_URL}icons/app-icon-512.png`,
 ];
 
-// Install Service Worker & cache assets
+// Install — hanya cache aset statis, BUKAN index.html
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-      .catch(err => console.error("Cache gagal dimuat:", err))
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .catch(err => console.warn("Cache sebagian gagal:", err))
   );
 });
 
-// Activate & delete old caches
+// Activate — hapus semua cache versi lama
 self.addEventListener("activate", event => {
   event.waitUntil(
     (async () => {
@@ -29,7 +26,7 @@ self.addEventListener("activate", event => {
       await Promise.all(
         keys.map(key => {
           if (key !== CACHE_NAME) {
-            console.log("Menghapus cache lama:", key);
+            console.log("Hapus cache lama:", key);
             return caches.delete(key);
           }
         })
@@ -39,45 +36,61 @@ self.addEventListener("activate", event => {
   );
 });
 
-// Fetch: cache-first for local, network-first for external
+// Fetch — NETWORK-FIRST untuk HTML, CACHE-FIRST untuk aset statis
 self.addEventListener("fetch", event => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Ignore chrome extensions, non-GET requests
+  // Abaikan chrome-extension dan non-GET
   if (url.protocol.startsWith("chrome-extension")) return;
   if (request.method !== "GET") return;
 
-  // Local (static) files
   if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(request).then(response => {
-        if (response) return response;
-        return fetch(request)
-          .then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200) {
-              const clone = networkResponse.clone();
-              caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-            }
-            return networkResponse;
+
+    // ── Network-first untuk navigasi / HTML ──────────────────
+    if (request.mode === "navigate" || request.destination === "document") {
+      event.respondWith(
+        fetch(request)
+          .then(networkRes => {
+            // Jangan cache HTML agar selalu fresh
+            return networkRes;
           })
-          .catch(() => {
-            if (request.mode === "navigate") {
-              return caches.match(`${BASE_URL}offline.html`);
+          .catch(() =>
+            caches.match(request)
+              .then(cached => cached || caches.match(`${BASE_URL}offline.html`))
+          )
+      );
+      return;
+    }
+
+    // ── Cache-first untuk aset statis lainnya ────────────────
+    event.respondWith(
+      caches.match(request).then(cached => {
+        if (cached) return cached;
+        return fetch(request)
+          .then(networkRes => {
+            if (networkRes && networkRes.status === 200) {
+              const clone = networkRes.clone();
+              caches.open(CACHE_NAME).then(c => c.put(request, clone));
             }
-            return new Response("Offline", { status: 503, statusText: "Service Unavailable" });
-          });
+            return networkRes;
+          })
+          .catch(() =>
+            new Response("Offline", { status: 503, statusText: "Service Unavailable" })
+          );
       })
     );
-  }
-  // External resources (CDN, APIs, etc.)
-  else {
+
+  } else {
+    // ── External CDN — network dulu, fallback cache ───────────
     event.respondWith(
       fetch(request)
-        .then(networkResponse => {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-          return networkResponse;
+        .then(networkRes => {
+          if (networkRes && networkRes.status === 200) {
+            const clone = networkRes.clone();
+            caches.open(CACHE_NAME).then(c => c.put(request, clone));
+          }
+          return networkRes;
         })
         .catch(() => caches.match(request))
     );

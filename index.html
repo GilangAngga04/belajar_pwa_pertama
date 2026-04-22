@@ -1,24 +1,997 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2563EB">
+<meta name="description" content="RenTrack - Sistem Monitoring Kendaraan Rental Real-Time">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="RenTrack">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/app-icon-192.png">
+<title>RenTrack - Vehicle Tracking</title>
 
-<div class="section-header">
-<div class="section-title">Kendaraan</div>
-        <button class="btn-sm btn-sm-blue" onclick="showPage('tambah')" style="border-radius:8px">
-        <button class="btn-sm btn-sm-blue" onclick="openAddModal()" style="border-radius:8px">
-<i data-lucide="plus" size="13"></i> Tambah
-</button>
+<!-- Leaflet Maps -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- Lucide Icons -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+
+<style>
+  :root {
+    --blue: #2563EB;
+    --blue-light: #DBEAFE;
+    --blue-dark: #1D4ED8;
+    --green: #22C55E;
+    --green-light: #DCFCE7;
+    --red: #EF4444;
+    --red-light: #FEE2E2;
+    --orange: #F59E0B;
+    --orange-light: #FEF3C7;
+    --bg: #F3F4F6;
+    --card: #FFFFFF;
+    --text: #111827;
+    --text-2: #6B7280;
+    --text-3: #9CA3AF;
+    --border: #E5E7EB;
+    --nav-h: 68px;
+    --header-h: 60px;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 24px rgba(0,0,0,.12);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+    font-size: 15px;
+  }
+
+  h1,h2,h3,h4,h5 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+  /* ── Auth ── */
+  #auth-screen {
+    min-height: 100dvh;
+    background: linear-gradient(145deg, #1E3A8A 0%, #2563EB 50%, #0EA5E9 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  #auth-screen::before {
+    content:'';
+    position:absolute;
+    width:400px;height:400px;
+    border-radius:50%;
+    background:rgba(255,255,255,.05);
+    top:-100px;right:-100px;
+  }
+  #auth-screen::after {
+    content:'';
+    position:absolute;
+    width:300px;height:300px;
+    border-radius:50%;
+    background:rgba(255,255,255,.04);
+    bottom:-80px;left:-80px;
+  }
+  .auth-logo {
+    text-align:center;
+    margin-bottom:32px;
+    position:relative;z-index:1;
+  }
+  .auth-logo .logo-icon {
+    width:72px;height:72px;
+    background:rgba(255,255,255,.15);
+    backdrop-filter:blur(10px);
+    border-radius:20px;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 14px;
+    border:1px solid rgba(255,255,255,.2);
+    box-shadow:0 8px 32px rgba(0,0,0,.2);
+  }
+  .auth-logo h1 { color:#fff;font-size:28px;font-weight:800;letter-spacing:-.5px; }
+  .auth-logo p { color:rgba(255,255,255,.7);font-size:13px;margin-top:4px; }
+
+  .auth-card {
+    background:#fff;
+    border-radius:24px;
+    padding:28px 24px;
+    width:100%;
+    max-width:400px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);
+    position:relative;z-index:1;
+  }
+  .auth-tabs { display:flex;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:24px; }
+  .auth-tab {
+    flex:1;padding:8px;text-align:center;border-radius:7px;
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:14px;
+    cursor:pointer;transition:.2s;color:var(--text-2);border:none;background:none;
+  }
+  .auth-tab.active { background:#fff;color:var(--blue);box-shadow:var(--shadow); }
+
+  .auth-form { display:none; }
+  .auth-form.active { display:block; }
+
+  .form-group { margin-bottom:16px; }
+  .form-label {
+    display:block;margin-bottom:6px;
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:13px;color:var(--text-2);
+  }
+  .form-input {
+    width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;
+    font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);
+    outline:none;transition:.2s;background:#fff;
+  }
+  .form-input:focus { border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-light); }
+  .form-input.error { border-color:var(--red);box-shadow:0 0 0 3px var(--red-light); }
+
+  .remember-row { display:flex;align-items:center;gap:8px;margin-bottom:20px; }
+  .remember-row input[type=checkbox] { width:16px;height:16px;accent-color:var(--blue); }
+  .remember-row label { font-size:13px;color:var(--text-2);cursor:pointer; }
+
+  .btn-primary {
+    width:100%;padding:13px;background:var(--blue);color:#fff;border:none;
+    border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;
+    font-size:15px;cursor:pointer;transition:.2s;
+    box-shadow:0 4px 12px rgba(37,99,235,.3);
+  }
+  .btn-primary:hover { background:var(--blue-dark);transform:translateY(-1px); }
+  .btn-primary:active { transform:translateY(0); }
+  .btn-primary:disabled { opacity:.6;cursor:not-allowed;transform:none; }
+
+  .error-msg { color:var(--red);font-size:12px;margin-top:4px; }
+  .success-toast {
+    position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:var(--green);color:#fff;padding:12px 20px;border-radius:10px;
+    font-weight:600;font-size:14px;z-index:9999;
+    box-shadow:var(--shadow-md);display:none;
+    white-space:nowrap;
+  }
+  .error-toast {
+    position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:var(--red);color:#fff;padding:12px 20px;border-radius:10px;
+    font-weight:600;font-size:14px;z-index:9999;
+    box-shadow:var(--shadow-md);display:none;
+    white-space:nowrap;
+  }
+
+  /* ── App Shell ── */
+  #app { display:none;min-height:100dvh;flex-direction:column; }
+  #app.visible { display:flex; }
+
+  /* ── Header ── */
+  .app-header {
+    height:var(--header-h);
+    background:#fff;
+    border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px;
+    position:sticky;top:0;z-index:100;
+    box-shadow:0 1px 8px rgba(0,0,0,.06);
+  }
+  .header-brand {
+    display:flex;align-items:center;gap:10px;
+  }
+  .header-brand .brand-icon {
+    width:36px;height:36px;background:var(--blue);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 8px rgba(37,99,235,.3);
+  }
+  .header-brand h2 {
+    font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.5px;
+  }
+  .header-actions { display:flex;gap:8px;align-items:center; }
+  .icon-btn {
+    width:36px;height:36px;border-radius:10px;border:none;background:var(--bg);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:.15s;color:var(--text-2);
+  }
+  .icon-btn:hover { background:var(--blue-light);color:var(--blue); }
+  .notif-dot {
+    width:8px;height:8px;background:var(--red);border-radius:50%;
+    position:absolute;top:6px;right:6px;border:2px solid #fff;
+  }
+
+  /* ── Page Container ── */
+  .page-container {
+    flex:1;overflow-y:auto;padding-bottom:calc(var(--nav-h) + 12px);
+  }
+  .page { display:none;padding:16px; }
+  .page.active { display:block; }
+  #page-maps { padding:0; }
+  #page-maps.active { display:flex;flex-direction:column;height:calc(100dvh - var(--header-h) - var(--nav-h)); }
+
+  /* ── Bottom Nav ── */
+  .bottom-nav {
+    height:var(--nav-h);
+    background:#fff;
+    border-top:1px solid var(--border);
+    display:flex;
+    position:fixed;bottom:0;left:0;right:0;z-index:100;
+    box-shadow:0 -4px 20px rgba(0,0,0,.08);
+  }
+  .nav-item {
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:4px;border:none;background:none;cursor:pointer;
+    color:var(--text-3);transition:.2s;padding:8px 4px;
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:10px;
+    position:relative;
+  }
+  .nav-item.active { color:var(--blue); }
+  .nav-item.active::before {
+    content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:40px;height:3px;background:var(--blue);border-radius:0 0 4px 4px;
+  }
+  .nav-add {
+    background:var(--blue);
+    border-radius:16px;
+    color:#fff !important;
+    margin:8px 4px;
+    box-shadow:0 4px 12px rgba(37,99,235,.4);
+  }
+  .nav-add::before { display:none !important; }
+
+  /* ── Section Headers ── */
+  .section-header {
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .section-title {
+    font-size:17px;font-weight:700;color:var(--text);
+  }
+  .section-sub { font-size:12px;color:var(--text-2);margin-top:1px; }
+
+  /* ── Stats Row ── */
+  .stats-row {
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;
+  }
+  .stat-card {
+    background:#fff;border-radius:var(--radius-sm);padding:14px 12px;
+    box-shadow:var(--shadow);text-align:center;
+  }
+  .stat-num {
+    font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;
+    line-height:1;
+  }
+  .stat-label { font-size:11px;color:var(--text-2);margin-top:4px;font-weight:500; }
+
+  /* ── Vehicles List ── */
+  .vehicle-card {
+    background:#fff;border-radius:var(--radius);padding:16px;
+    box-shadow:var(--shadow);margin-bottom:12px;
+    display:flex;align-items:center;gap:14px;
+    cursor:pointer;transition:.18s;border:1.5px solid transparent;
+  }
+  .vehicle-card:hover { border-color:var(--blue-light);box-shadow:0 4px 20px rgba(37,99,235,.12); }
+  .vehicle-card:active { transform:scale(.98); }
+
+  .vehicle-icon {
+    width:48px;height:48px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .vehicle-icon.motor { background:#EFF6FF; }
+  .vehicle-icon.mobil { background:#F0FDF4; }
+
+  .vehicle-info { flex:1;min-width:0; }
+  .vehicle-name {
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .vehicle-plate {
+    font-size:12px;color:var(--text-2);margin-top:2px;font-weight:500;
+    font-family:'Plus Jakarta Sans',sans-serif;
+    letter-spacing:.5px;
+  }
+
+  .status-badge {
+    padding:4px 10px;border-radius:20px;
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:11px;
+    flex-shrink:0;
+  }
+  .status-badge.aktif { background:var(--green-light);color:#15803D; }
+  .status-badge.offline { background:var(--red-light);color:#B91C1C; }
+  .status-badge.tersedia { background:var(--blue-light);color:var(--blue); }
+  .status-badge.disewa { background:var(--orange-light);color:#B45309; }
+
+  .vehicle-card-actions { display:flex;gap:8px;margin-top:12px; }
+  .btn-sm {
+    flex:1;padding:8px 12px;border-radius:8px;border:none;
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:12px;
+    cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:5px;
+  }
+  .btn-sm-blue { background:var(--blue-light);color:var(--blue); }
+  .btn-sm-blue:hover { background:var(--blue);color:#fff; }
+  .btn-sm-green { background:var(--green-light);color:#15803D; }
+  .btn-sm-green:hover { background:var(--green);color:#fff; }
+  .btn-sm-red { background:var(--red-light);color:var(--red); }
+  .btn-sm-red:hover { background:var(--red);color:#fff; }
+
+  /* ── Maps Page ── */
+  #map {
+    flex:1;
+    z-index:1;
+  }
+  .map-overlay {
+    position:absolute;top:12px;left:12px;right:12px;z-index:400;
+    display:flex;gap:8px;
+  }
+  .map-search {
+    flex:1;background:#fff;border-radius:10px;padding:10px 14px;
+    box-shadow:var(--shadow-md);border:none;font-size:14px;
+    font-family:'DM Sans',sans-serif;outline:none;
+  }
+  .map-filter-btn {
+    background:#fff;border-radius:10px;border:none;
+    padding:0 14px;box-shadow:var(--shadow-md);cursor:pointer;
+    color:var(--text-2);transition:.15s;
+    display:flex;align-items:center;
+  }
+  .map-filter-btn:hover { color:var(--blue); }
+
+  .map-legend {
+    position:absolute;bottom:12px;left:12px;z-index:400;
+    background:#fff;border-radius:10px;padding:10px 14px;
+    box-shadow:var(--shadow-md);display:flex;gap:14px;
+  }
+  .legend-item { display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--text-2); }
+  .legend-dot { width:10px;height:10px;border-radius:50%; }
+
+  /* ── Add Vehicle Form ── */
+  .form-card {
+    background:#fff;border-radius:var(--radius);padding:20px;
+    box-shadow:var(--shadow);
+  }
+  .form-section-title {
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;
+    margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);
+    color:var(--text);
+  }
+  .form-row { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
+  .form-select {
+    width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;
+    font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);
+    outline:none;transition:.2s;background:#fff;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center;
+    padding-right:36px;
+  }
+  .form-select:focus { border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-light); }
+
+  /* ── Detail Page ── */
+  .detail-hero {
+    background:linear-gradient(135deg,var(--blue) 0%,#1D4ED8 100%);
+    border-radius:var(--radius);padding:20px;margin-bottom:14px;
+    color:#fff;display:flex;align-items:center;gap:16px;
+    box-shadow:0 4px 20px rgba(37,99,235,.3);
+  }
+  .detail-hero-icon {
+    width:60px;height:60px;background:rgba(255,255,255,.15);
+    border-radius:14px;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .detail-hero-info h2 { font-size:20px;font-weight:800; }
+  .detail-hero-info p { opacity:.8;font-size:13px;margin-top:3px; }
+
+  .detail-grid {
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;
+  }
+  .detail-item {
+    background:#fff;border-radius:var(--radius-sm);padding:14px;
+    box-shadow:var(--shadow);
+  }
+  .detail-item-label { font-size:11px;color:var(--text-2);font-weight:600;text-transform:uppercase;letter-spacing:.5px; }
+  .detail-item-value { font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;margin-top:4px; }
+
+  .detail-actions { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px; }
+  .btn-action {
+    padding:14px;border-radius:var(--radius-sm);border:none;
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;
+    cursor:pointer;transition:.15s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-action-blue { background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.3); }
+  .btn-action-blue:hover { background:var(--blue-dark); }
+  .btn-action-outline { background:#fff;color:var(--text);border:1.5px solid var(--border); }
+  .btn-action-outline:hover { border-color:var(--blue);color:var(--blue); }
+  .btn-action-red { background:var(--red-light);color:var(--red); }
+  .btn-action-red:hover { background:var(--red);color:#fff; }
+
+  /* ── History Table ── */
+  .history-card {
+    background:#fff;border-radius:var(--radius);padding:16px;
+    box-shadow:var(--shadow);
+  }
+  .history-item {
+    display:flex;gap:12px;padding:12px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .history-item:last-child { border-bottom:none; }
+  .history-icon {
+    width:36px;height:36px;background:var(--blue-light);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    color:var(--blue);
+  }
+  .history-info { flex:1; }
+  .history-name { font-weight:600;font-size:14px; }
+  .history-detail { font-size:12px;color:var(--text-2);margin-top:2px; }
+  .history-dur {
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;
+    color:var(--blue);text-align:right;flex-shrink:0;
+  }
+
+  /* ── Settings ── */
+  .settings-section { margin-bottom:20px; }
+  .settings-section-label {
+    font-size:11px;color:var(--text-2);font-weight:700;text-transform:uppercase;
+    letter-spacing:.8px;margin-bottom:8px;padding-left:4px;
+  }
+  .settings-card { background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow); }
+  .settings-item {
+    display:flex;align-items:center;gap:12px;padding:14px 16px;
+    border-bottom:1px solid var(--border);cursor:pointer;transition:.15s;
+  }
+  .settings-item:last-child { border-bottom:none; }
+  .settings-item:hover { background:var(--bg); }
+  .settings-item-icon {
+    width:36px;height:36px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .settings-item-info { flex:1; }
+  .settings-item-title { font-weight:600;font-size:14px; }
+  .settings-item-sub { font-size:12px;color:var(--text-2);margin-top:1px; }
+
+  .toggle {
+    width:44px;height:24px;background:var(--border);border-radius:12px;
+    position:relative;cursor:pointer;transition:.2s;flex-shrink:0;
+  }
+  .toggle.on { background:var(--blue); }
+  .toggle::after {
+    content:'';position:absolute;width:18px;height:18px;
+    background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s;
+    box-shadow:0 1px 4px rgba(0,0,0,.2);
+  }
+  .toggle.on::after { left:23px; }
+
+  /* ── Profile Card ── */
+  .profile-card {
+    background:linear-gradient(135deg,var(--blue),#1D4ED8);
+    border-radius:var(--radius);padding:20px;
+    display:flex;align-items:center;gap:14px;margin-bottom:20px;
+    box-shadow:0 4px 20px rgba(37,99,235,.3);
+  }
+  .profile-avatar {
+    width:52px;height:52px;background:rgba(255,255,255,.2);
+    border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;
+    color:#fff;flex-shrink:0;
+  }
+  .profile-info { flex:1; }
+  .profile-name { color:#fff;font-size:17px;font-weight:700; }
+  .profile-email { color:rgba(255,255,255,.7);font-size:12px;margin-top:2px; }
+  .profile-badge {
+    background:rgba(255,255,255,.2);color:#fff;
+    padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;
+  }
+
+  /* ── Notif Banner ── */
+  .notif-item {
+    background:#fff;border-radius:var(--radius-sm);padding:14px;
+    display:flex;gap:10px;margin-bottom:8px;box-shadow:var(--shadow);
+    border-left:4px solid;
+  }
+  .notif-item.warning { border-color:var(--orange); }
+  .notif-item.danger { border-color:var(--red); }
+  .notif-item.info { border-color:var(--blue); }
+  .notif-item.success { border-color:var(--green); }
+  .notif-icon { font-size:20px;flex-shrink:0;margin-top:1px; }
+  .notif-content { flex:1; }
+  .notif-title { font-weight:600;font-size:14px; }
+  .notif-desc { font-size:12px;color:var(--text-2);margin-top:2px; }
+  .notif-time { font-size:11px;color:var(--text-3);margin-top:4px; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;
+    display:none;align-items:flex-end;justify-content:center;
+    backdrop-filter:blur(2px);
+  }
+  .modal-overlay.open { display:flex; }
+  .modal-sheet {
+    background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:600px;
+    padding:0 0 env(safe-area-inset-bottom);max-height:90dvh;overflow-y:auto;
+    animation:slideUp .25s ease-out;
+  }
+  @keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+  .modal-handle {
+    width:36px;height:4px;background:var(--border);border-radius:2px;
+    margin:12px auto 0;
+  }
+  .modal-header {
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 20px;border-bottom:1px solid var(--border);
+  }
+  .modal-title { font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px; }
+  .modal-close {
+    width:32px;height:32px;border-radius:8px;background:var(--bg);
+    border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    color:var(--text-2);
+  }
+  .modal-body { padding:20px; }
+
+  /* ── Offline Banner ── */
+  .offline-banner {
+    background:var(--orange);color:#fff;
+    padding:8px 16px;text-align:center;font-size:13px;font-weight:600;
+    display:none;position:sticky;top:var(--header-h);z-index:90;
+  }
+  .offline-banner.show { display:block; }
+
+  /* ── Empty State ── */
+  .empty-state {
+    text-align:center;padding:48px 24px;
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+  }
+  .empty-icon {
+    width:72px;height:72px;background:var(--bg);border-radius:20px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--text-3);
+  }
+  .empty-title { font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px; }
+  .empty-desc { font-size:14px;color:var(--text-2);max-width:240px; }
+
+  /* ── Confirm Dialog ── */
+  .confirm-overlay {
+    position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;
+    display:none;align-items:center;justify-content:center;
+    padding:24px;backdrop-filter:blur(2px);
+  }
+  .confirm-overlay.open { display:flex; }
+  .confirm-dialog {
+    background:#fff;border-radius:var(--radius);padding:24px;
+    max-width:320px;width:100%;box-shadow:var(--shadow-md);
+    animation:scaleIn .2s ease-out;
+  }
+  @keyframes scaleIn { from { transform:scale(.9);opacity:0; } to { transform:scale(1);opacity:1; } }
+  .confirm-icon {
+    width:48px;height:48px;background:var(--red-light);border-radius:12px;
+    display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--red);
+  }
+  .confirm-title { font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:17px;text-align:center; }
+  .confirm-desc { font-size:14px;color:var(--text-2);text-align:center;margin-top:8px; }
+  .confirm-actions { display:flex;gap:10px;margin-top:20px; }
+  .btn-cancel { flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-weight:600;font-size:14px; }
+  .btn-delete { flex:1;padding:12px;border-radius:10px;border:none;background:var(--red);color:#fff;cursor:pointer;font-weight:700;font-size:14px; }
+
+  /* ── Status Toggle ── */
+  .status-row { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px; }
+  .status-chip {
+    padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);
+    font-size:13px;font-weight:600;cursor:pointer;transition:.15s;
+    font-family:'Plus Jakarta Sans',sans-serif;background:#fff;
+  }
+  .status-chip.selected { background:var(--blue);color:#fff;border-color:var(--blue); }
+
+  /* Leaflet custom markers */
+  .marker-icon {
+    width:32px;height:32px;border-radius:50%;
+    border:3px solid #fff;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);font-size:14px;
+  }
+  .marker-green { background:var(--green); }
+  .marker-red { background:var(--red); }
+  .marker-blue { background:var(--blue); }
+
+  .leaflet-popup-content-wrapper {
+    border-radius:12px !important;
+    box-shadow:var(--shadow-md) !important;
+    padding:0 !important;
+  }
+  .leaflet-popup-content { margin:0 !important;padding:0 !important; }
+  .map-popup {
+    padding:14px;min-width:160px;
+    font-family:'DM Sans',sans-serif;
+  }
+  .map-popup h4 { font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;margin-bottom:4px; }
+  .map-popup p { font-size:12px;color:var(--text-2); }
+  .map-popup-btn {
+    width:100%;margin-top:10px;padding:7px;background:var(--blue);color:#fff;
+    border:none;border-radius:7px;font-weight:600;font-size:12px;cursor:pointer;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border);border-radius:4px; }
+
+  @media (max-width:380px) {
+    .form-row { grid-template-columns:1fr; }
+    .detail-grid { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Toasts -->
+<div class="success-toast" id="successToast"></div>
+<div class="error-toast" id="errorToast"></div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-dialog">
+    <div class="confirm-icon"><i data-lucide="trash-2" size="22"></i></div>
+    <div class="confirm-title">Hapus Kendaraan?</div>
+    <div class="confirm-desc">Data kendaraan akan dihapus secara permanen dan tidak bisa dikembalikan.</div>
+    <div class="confirm-actions">
+      <button class="btn-cancel" onclick="closeConfirm()">Batal</button>
+      <button class="btn-delete" onclick="confirmDelete()">Hapus</button>
+    </div>
+  </div>
 </div>
-@@ -979,7 +979,7 @@ <h2>RenTrack</h2>
-<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-<span>Maps</span>
-</button>
-    <button class="nav-item nav-add" id="nav-tambah" onclick="showPage('tambah')">
+
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-logo">
+    <div class="logo-icon">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <path d="M18 4L32 12V24L18 32L4 24V12L18 4Z" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+        <circle cx="18" cy="18" r="5" fill="white"/>
+        <circle cx="10" cy="14" r="2.5" fill="rgba(255,255,255,0.7)"/>
+        <circle cx="26" cy="14" r="2.5" fill="rgba(255,255,255,0.7)"/>
+        <circle cx="10" cy="22" r="2.5" fill="rgba(255,255,255,0.7)"/>
+        <circle cx="26" cy="22" r="2.5" fill="rgba(255,255,255,0.7)"/>
+      </svg>
+    </div>
+    <h1>RenTrack</h1>
+    <p>Vehicle Monitoring System</p>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuth('login')">Masuk</button>
+      <button class="auth-tab" onclick="switchAuth('register')">Daftar</button>
+    </div>
+
+    <!-- Login Form -->
+    <div class="auth-form active" id="form-login">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="login-email" type="email" placeholder="email@contoh.com">
+        <div class="error-msg" id="err-login-email"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="login-pass" type="password" placeholder="Minimal 6 karakter">
+        <div class="error-msg" id="err-login-pass"></div>
+      </div>
+      <div class="remember-row">
+        <input type="checkbox" id="remember-me" checked>
+        <label for="remember-me">Ingat saya</label>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Masuk</button>
+    </div>
+
+    <!-- Register Form -->
+    <div class="auth-form" id="form-register">
+      <div class="form-group">
+        <label class="form-label">Nama Lengkap</label>
+        <input class="form-input" id="reg-name" type="text" placeholder="Nama Anda">
+        <div class="error-msg" id="err-reg-name"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="reg-email" type="email" placeholder="email@contoh.com">
+        <div class="error-msg" id="err-reg-email"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="reg-pass" type="password" placeholder="Minimal 6 karakter">
+        <div class="error-msg" id="err-reg-pass"></div>
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Buat Akun</button>
+    </div>
+  </div>
+</div>
+
+<!-- App Shell -->
+<div id="app">
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 36 36" fill="none">
+          <path d="M18 4L32 12V24L18 32L4 24V12L18 4Z" fill="rgba(255,255,255,0.4)" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>
+          <circle cx="18" cy="18" r="4" fill="white"/>
+        </svg>
+      </div>
+      <h2>RenTrack</h2>
+    </div>
+    <div class="header-actions">
+      <div style="position:relative">
+        <button class="icon-btn" onclick="showPage('notifikasi')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-dot" id="notifDot" style="display:none"></span>
+        </button>
+      </div>
+      <button class="icon-btn" onclick="showPage('settings')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="offline-banner" id="offlineBanner">📡 Mode offline aktif — data mungkin tidak terbaru</div>
+
+  <div class="page-container">
+    <!-- HOME PAGE -->
+    <div class="page active" id="page-home">
+      <div class="section-header" style="margin-top:4px">
+        <div>
+          <div class="section-title">Dashboard</div>
+          <div class="section-sub" id="greetUser">Selamat datang</div>
+        </div>
+        <button class="btn-sm btn-sm-blue" onclick="simulateGPS()" style="border-radius:8px;padding:8px 12px">
+          <i data-lucide="refresh-cw" size="13"></i> Refresh
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-total" style="color:var(--blue)">0</div>
+          <div class="stat-label">Total Kendaraan</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-aktif" style="color:var(--green)">0</div>
+          <div class="stat-label">Sedang Disewa</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-offline" style="color:var(--red)">0</div>
+          <div class="stat-label">GPS Offline</div>
+        </div>
+      </div>
+
+      <!-- Notif Alert -->
+      <div id="alertBanner" style="display:none" class="notif-item warning" style="margin-bottom:14px">
+        <span class="notif-icon">⚠️</span>
+        <div class="notif-content">
+          <div class="notif-title">Perhatian Diperlukan</div>
+          <div class="notif-desc" id="alertText"></div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Kendaraan</div>
+        <button class="btn-sm btn-sm-blue" onclick="openAddModal()" style="border-radius:8px">
+          <i data-lucide="plus" size="13"></i> Tambah
+        </button>
+      </div>
+
+      <div id="vehicleList">
+        <!-- Generated dynamically -->
+      </div>
+    </div>
+
+    <!-- MAPS PAGE -->
+    <div class="page" id="page-maps" style="position:relative">
+      <div class="map-overlay">
+        <input class="map-search" placeholder="🔍 Cari kendaraan..." id="mapSearch" oninput="filterMapMarkers()">
+        <button class="map-filter-btn" onclick="toggleMapFilter()">
+          <i data-lucide="filter" size="16"></i>
+        </button>
+      </div>
+      <div id="map"></div>
+      <div class="map-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Aktif</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Offline</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Tersedia</div>
+      </div>
+    </div>
+
+    <!-- TAMBAH PAGE -->
+    <div class="page" id="page-tambah">
+      <div class="section-header" style="margin-top:4px">
+        <div class="section-title" id="tambahTitle">Tambah Kendaraan</div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-section-title">Informasi Kendaraan</div>
+        <input type="hidden" id="editId">
+
+        <div class="form-group">
+          <label class="form-label">Nama Kendaraan</label>
+          <input class="form-input" id="v-nama" type="text" placeholder="Contoh: Honda Beat 2022">
+          <div class="error-msg" id="err-v-nama"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Nomor Plat</label>
+            <input class="form-input" id="v-plat" type="text" placeholder="AB 1234 CD" style="text-transform:uppercase">
+            <div class="error-msg" id="err-v-plat"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Jenis</label>
+            <select class="form-select" id="v-jenis">
+              <option value="">Pilih Jenis</option>
+              <option value="motor">Motor</option>
+              <option value="mobil">Mobil</option>
+            </select>
+            <div class="error-msg" id="err-v-jenis"></div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px">
+          <label class="form-label">Status Awal</label>
+          <select class="form-select" id="v-status">
+            <option value="tersedia">Tersedia</option>
+            <option value="disewa">Sedang Disewa</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Warna</label>
+          <input class="form-input" id="v-warna" type="text" placeholder="Contoh: Merah, Putih, Biru">
+        </div>
+
+        <button class="btn-primary" id="btnSimpan" onclick="saveVehicle()" style="margin-top:4px">
+          Simpan Kendaraan
+        </button>
+        <button onclick="cancelEdit()" style="width:100%;margin-top:10px;padding:12px;border:none;background:none;color:var(--text-2);font-size:14px;cursor:pointer;font-weight:600">
+          Batal
+        </button>
+      </div>
+    </div>
+
+    <!-- DETAIL PAGE -->
+    <div class="page" id="page-detail">
+      <div id="detailContent"></div>
+    </div>
+
+    <!-- NOTIFIKASI PAGE -->
+    <div class="page" id="page-notifikasi">
+      <div class="section-header" style="margin-top:4px">
+        <div class="section-title">Notifikasi</div>
+        <button class="btn-sm btn-sm-blue" onclick="clearNotifications()" style="border-radius:8px">Hapus Semua</button>
+      </div>
+      <div id="notifList"></div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div style="margin-top:4px;margin-bottom:20px">
+        <div id="profileCardEl"></div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-label">Aplikasi</div>
+        <div class="settings-card">
+          <div class="settings-item" onclick="toggleSetting('notif')">
+            <div class="settings-item-icon" style="background:var(--orange-light)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Notifikasi Push</div>
+              <div class="settings-item-sub">Aktifkan peringatan kendaraan</div>
+            </div>
+            <div class="toggle on" id="toggle-notif"></div>
+          </div>
+          <div class="settings-item" onclick="toggleSetting('geofence')">
+            <div class="settings-item-icon" style="background:var(--blue-light)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Geofencing</div>
+              <div class="settings-item-sub">Peringatan keluar area</div>
+            </div>
+            <div class="toggle on" id="toggle-geofence"></div>
+          </div>
+          <div class="settings-item" onclick="toggleSetting('interval')">
+            <div class="settings-item-icon" style="background:var(--green-light)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Update Otomatis</div>
+              <div class="settings-item-sub">Refresh lokasi tiap 30 detik</div>
+            </div>
+            <div class="toggle on" id="toggle-interval"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-label">Data</div>
+        <div class="settings-card">
+          <div class="settings-item" onclick="exportData()">
+            <div class="settings-item-icon" style="background:#F3E8FF">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9333EA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Export Data</div>
+              <div class="settings-item-sub">Unduh data kendaraan (JSON)</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="settings-item" onclick="showPage('riwayat')">
+            <div class="settings-item-icon" style="background:var(--orange-light)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/><path d="M2 12h2"/></svg>
+            </div>
+            <div class="settings-item-info">
+              <div class="settings-item-title">Riwayat Perjalanan</div>
+              <div class="settings-item-sub">Lihat semua riwayat</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-label">Akun</div>
+        <div class="settings-card">
+          <div class="settings-item" onclick="doLogout()" style="color:var(--red)">
+            <div class="settings-item-icon" style="background:var(--red-light)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </div>
+            <div class="settings-item-info">
+              <div class="settings-item-title" style="color:var(--red)">Keluar</div>
+              <div class="settings-item-sub">Logout dari akun</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding:20px 0;color:var(--text-3);font-size:12px">
+        RenTrack v1.0.0 · PWA Mode<br>
+        <span id="pwaStatus">Cek PWA status...</span><br>
+        <span style="margin-top:6px;display:inline-block">© 2024 Gilang Angga Wijaya</span>
+      </div>
+    </div>
+
+    <!-- RIWAYAT PAGE -->
+    <div class="page" id="page-riwayat">
+      <div class="section-header" style="margin-top:4px">
+        <div class="section-title">Riwayat Perjalanan</div>
+      </div>
+      <div id="riwayatList"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-home" onclick="showPage('home')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-item" id="nav-maps" onclick="showPage('maps')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span>Maps</span>
+    </button>
     <button class="nav-item nav-add" id="nav-tambah" onclick="openAddModal()">
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-<span>Tambah</span>
-</button>
-@@ -992,6 +992,72 @@ <h2>RenTrack</h2>
-<span>Setelan</span>
-</button>
-</nav>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>Tambah</span>
+    </button>
+    <button class="nav-item" id="nav-notifikasi" onclick="showPage('notifikasi')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span>Notifikasi</span>
+    </button>
+    <button class="nav-item" id="nav-settings" onclick="showPage('settings')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Setelan</span>
+    </button>
+  </nav>
 
   <!-- Modal Tambah / Edit Kendaraan -->
   <div class="modal-overlay" id="addVehicleModal" onclick="handleModalOverlayClick(event)">
@@ -88,46 +1061,636 @@
 </div>
 
 <script>
-@@ -1196,7 +1262,7 @@ <h2>RenTrack</h2>
-       <button class="btn-sm btn-sm-blue" onclick="event.stopPropagation();viewOnMap(${v.id})">
-         <i data-lucide="map-pin" size="11"></i> Maps
-       </button>
-        <button class="btn-sm btn-sm-green" onclick="event.stopPropagation();editVehicle(${v.id})">
-        <button class="btn-sm btn-sm-green" onclick="event.stopPropagation();openEditModal(${v.id})">
-         <i data-lucide="edit-2" size="11"></i> Edit
-       </button>
-     </div>
-@@ -1315,19 +1381,7 @@ <h2>RenTrack</h2>
-showToast('🗑 Kendaraan dihapus');
+// ─── Utils ───────────────────────────────────────────────
+function hashPass(p) {
+  let h = 0;
+  for (let i = 0; i < p.length; i++) h = (Math.imul(31, h) + p.charCodeAt(i)) | 0;
+  return h.toString(16);
+}
+function showToast(msg, isError=false) {
+  const el = document.getElementById(isError ? 'errorToast' : 'successToast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+function setError(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; }
+  const input = document.getElementById(id.replace('err-',''));
+  if (input) input.classList.toggle('error', !!msg);
+}
+function clearErrors(...ids) { ids.forEach(id => setError(id,'')); }
+
+// ─── Auth ─────────────────────────────────────────────────
+let currentUser = null;
+
+function switchAuth(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', i === (tab==='login'?0:1)));
+  document.getElementById('form-login').classList.toggle('active', tab==='login');
+  document.getElementById('form-register').classList.toggle('active', tab==='register');
 }
 
-function editVehicle(id) {
-  const v = getVehicles().find(x=>x.id===id);
-  if (!v) return;
-  document.getElementById('editId').value = v.id;
-  document.getElementById('v-nama').value = v.nama;
-  document.getElementById('v-plat').value = v.plat;
-  document.getElementById('v-jenis').value = v.jenis;
-  document.getElementById('v-status').value = v.status;
-  document.getElementById('v-warna').value = v.warna||'';
-  document.getElementById('tambahTitle').textContent = 'Edit Kendaraan';
-  document.getElementById('btnSimpan').textContent = 'Perbarui Kendaraan';
-  showPage('tambah');
+function getUsers() { return JSON.parse(localStorage.getItem('rt_users')||'[]'); }
+function saveUsers(u) { localStorage.setItem('rt_users', JSON.stringify(u)); }
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  clearErrors('err-reg-name','err-reg-email','err-reg-pass');
+  let ok = true;
+  if (!name) { setError('err-reg-name','Nama tidak boleh kosong'); ok=false; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('err-reg-email','Email tidak valid'); ok=false; }
+  if (pass.length < 6) { setError('err-reg-pass','Password minimal 6 karakter'); ok=false; }
+  if (!ok) return;
+  const users = getUsers();
+  if (users.find(u => u.email===email)) { setError('err-reg-email','Email sudah terdaftar'); return; }
+  users.push({ id: Date.now(), name, email, pass: hashPass(pass) });
+  saveUsers(users);
+  showToast('✅ Akun berhasil dibuat! Silakan login.');
+  switchAuth('login');
+  document.getElementById('login-email').value = email;
 }
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const remember = document.getElementById('remember-me').checked;
+  clearErrors('err-login-email','err-login-pass');
+  let ok = true;
+  if (!email) { setError('err-login-email','Email tidak boleh kosong'); ok=false; }
+  if (!pass) { setError('err-login-pass','Password tidak boleh kosong'); ok=false; }
+  if (!ok) return;
+  const users = getUsers();
+  const user = users.find(u => u.email===email && u.pass===hashPass(pass));
+  if (!user) { setError('err-login-pass','Email atau password salah'); return; }
+  currentUser = user;
+  const sessionData = JSON.stringify({ id: user.id, email: user.email, name: user.name });
+  if (remember) localStorage.setItem('rt_session', sessionData);
+  else sessionStorage.setItem('rt_session', sessionData);
+  showApp();
+}
+
+function doLogout() {
+  localStorage.removeItem('rt_session');
+  sessionStorage.removeItem('rt_session');
+  currentUser = null;
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('auth-screen').style.display = 'flex';
+  showToast('👋 Berhasil keluar');
+}
+
+function checkSession() {
+  const s = localStorage.getItem('rt_session') || sessionStorage.getItem('rt_session');
+  if (s) {
+    try {
+      const d = JSON.parse(s);
+      // Seed demo user if no users
+      const users = getUsers();
+      if (!users.length) {
+        const demo = { id: 1, name: 'Demo MITRA', email: 'demo@rentrack.id', pass: hashPass('demo123') };
+        saveUsers([demo]);
+        if (!localStorage.getItem('rt_session')) {
+          localStorage.setItem('rt_session', JSON.stringify({ id: 1, email: 'demo@rentrack.id', name: 'Demo MITRA' }));
+          currentUser = demo;
+          showApp();
+          return;
+        }
+      }
+      currentUser = { id: d.id, name: d.name, email: d.email };
+      showApp();
+    } catch(e) {}
+  } else {
+    // Seed demo account
+    const users = getUsers();
+    if (!users.length) {
+      saveUsers([{ id: 1, name: 'Demo MITRA', email: 'demo@rentrack.id', pass: hashPass('demo123') }]);
+      document.getElementById('login-email').value = 'demo@rentrack.id';
+      document.getElementById('login-pass').value = 'demo123';
+    }
+  }
+}
+
+// ─── App Init ─────────────────────────────────────────────
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  const app = document.getElementById('app');
+  app.classList.add('visible');
+  if (currentUser) {
+    const h = new Date().getHours();
+    const greet = h < 12 ? 'Selamat pagi' : h < 17 ? 'Selamat siang' : 'Selamat malam';
+    document.getElementById('greetUser').textContent = `${greet}, ${currentUser.name}`;
+    document.getElementById('profileCardEl').innerHTML = `
+      <div class="profile-card">
+        <div class="profile-avatar">${currentUser.name.charAt(0).toUpperCase()}</div>
+        <div class="profile-info">
+          <div class="profile-name">${currentUser.name}</div>
+          <div class="profile-email">${currentUser.email}</div>
+        </div>
+        <div class="profile-badge">MITRA</div>
+      </div>
+    `;
+  }
+  seedDemoData();
+  renderVehicles();
+  updateStats();
+  checkOffline();
+  initMap();
+  renderNotifications();
+  renderRiwayat();
+  startAutoUpdate();
+  lucide.createIcons();
+}
+
+// ─── Data ─────────────────────────────────────────────────
+function getVehicles() { return JSON.parse(localStorage.getItem('rt_vehicles')||'[]'); }
+function saveVehicles(v) { localStorage.setItem('rt_vehicles', JSON.stringify(v)); }
+function getNotifications() { return JSON.parse(localStorage.getItem('rt_notifs')||'[]'); }
+function saveNotifications(n) { localStorage.setItem('rt_notifs', JSON.stringify(n)); }
+function getHistory() { return JSON.parse(localStorage.getItem('rt_history')||'[]'); }
+function saveHistory(h) { localStorage.setItem('rt_history', JSON.stringify(h)); }
+
+function seedDemoData() {
+  // Bersihkan data demo lama — versi flag agar selalu jalan saat update
+  const CLEAN_VERSION = 'v2';
+  if (localStorage.getItem('rt_cleaned') !== CLEAN_VERSION) {
+    localStorage.removeItem('rt_vehicles');
+    localStorage.removeItem('rt_history');
+    localStorage.removeItem('rt_notifs');
+    localStorage.setItem('rt_cleaned', CLEAN_VERSION);
+  }
+}
+
+// ─── Vehicles CRUD ────────────────────────────────────────
+function renderVehicles(filter='') {
+  const vehicles = getVehicles();
+  const container = document.getElementById('vehicleList');
+  const filtered = vehicles.filter(v => !filter || v.nama.toLowerCase().includes(filter) || v.plat.toLowerCase().includes(filter));
+
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-icon"><i data-lucide="car" size="28"></i></div>
+      <div class="empty-title">Belum Ada Kendaraan</div>
+      <div class="empty-desc">Tambahkan kendaraan pertama Anda dengan klik tombol ➕</div>
+    </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  container.innerHTML = filtered.map(v => {
+    const isMotor = v.jenis === 'motor';
+    const gpsColor = v.gpsStatus === 'aktif' ? 'var(--green)' : 'var(--red)';
+    const statusClass = v.status === 'disewa' ? 'disewa' : 'tersedia';
+    const gpsClass = v.gpsStatus === 'aktif' ? 'aktif' : 'offline';
+    return `
+    <div class="vehicle-card" onclick="showDetail(${v.id})">
+      <div class="vehicle-icon ${v.jenis}">
+        ${isMotor
+          ? `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M6 14l2-8h8l3 6H6z"/></svg>`
+          : `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><rect x="2" y="8" width="20" height="10" rx="2"/><path d="M6 8l2-4h8l2 4"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`
+        }
+      </div>
+      <div class="vehicle-info">
+        <div class="vehicle-name">${v.nama}</div>
+        <div class="vehicle-plate">${v.plat} · ${v.warna||'—'}</div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <span class="status-badge ${statusClass}">${v.status==='disewa'?'Disewa':'Tersedia'}</span>
+          <span class="status-badge ${gpsClass}">GPS ${v.gpsStatus}</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <button class="btn-sm btn-sm-blue" onclick="event.stopPropagation();viewOnMap(${v.id})">
+          <i data-lucide="map-pin" size="11"></i> Maps
+        </button>
+        <button class="btn-sm btn-sm-green" onclick="event.stopPropagation();openEditModal(${v.id})">
+          <i data-lucide="edit-2" size="11"></i> Edit
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function updateStats() {
+  const v = getVehicles();
+  const total = v.length;
+  const disewa = v.filter(x=>x.status==='disewa').length;
+  const offline = v.filter(x=>x.gpsStatus==='offline').length;
+
+  // Animate stat if value changed
+  animateStat('stat-total', total);
+  animateStat('stat-aktif', disewa);
+  animateStat('stat-offline', offline);
+
+  const offlines = v.filter(x=>x.gpsStatus==='offline');
+  const banner = document.getElementById('alertBanner');
+  const alertText = document.getElementById('alertText');
+  if (offlines.length) {
+    banner.style.display='flex';
+    alertText.textContent = `${offlines.length} kendaraan GPS offline: ${offlines.map(x=>x.nama).join(', ')}`;
+    banner.style.marginBottom='14px';
+  } else {
+    banner.style.display='none';
+  }
+  const notifDot = document.getElementById('notifDot');
+  notifDot.style.display = getNotifications().length ? 'block' : 'none';
+}
+
+function animateStat(id, newVal) {
+  const el = document.getElementById(id);
+  const oldVal = parseInt(el.textContent) || 0;
+  el.textContent = newVal;
+  if (newVal !== oldVal) {
+    const card = el.closest('.stat-card');
+    card.style.transition = 'transform .2s, box-shadow .2s';
+    card.style.transform = 'scale(1.08)';
+    card.style.boxShadow = '0 4px 20px rgba(37,99,235,.2)';
+    setTimeout(() => {
+      card.style.transform = 'scale(1)';
+      card.style.boxShadow = '';
+    }, 300);
+  }
+}
+
+function saveVehicle() {
+  const editId = document.getElementById('editId').value;
+  const nama = document.getElementById('v-nama').value.trim();
+  const plat = document.getElementById('v-plat').value.trim().toUpperCase();
+  const jenis = document.getElementById('v-jenis').value;
+  const status = document.getElementById('v-status').value;
+  const warna = document.getElementById('v-warna').value.trim();
+
+  clearErrors('err-v-nama','err-v-plat','err-v-jenis');
+  let ok = true;
+  if (!nama) { setError('err-v-nama','Nama kendaraan tidak boleh kosong'); ok=false; }
+  if (!plat) { setError('err-v-plat','Nomor plat tidak boleh kosong'); ok=false; }
+  if (!jenis) { setError('err-v-jenis','Pilih jenis kendaraan'); ok=false; }
+  if (!ok) return;
+
+  const vehicles = getVehicles();
+  if (editId) {
+    const idx = vehicles.findIndex(v=>v.id==editId);
+    if (idx>-1) { Object.assign(vehicles[idx],{nama,plat,jenis,status,warna}); }
+    showToast('✅ Kendaraan berhasil diperbarui');
+  } else {
+    // Check duplicate plat
+    if (vehicles.find(v=>v.plat===plat)) { setError('err-v-plat','Nomor plat sudah terdaftar'); return; }
+    const newV = {
+      id: Date.now(), nama, plat, jenis, status, warna,
+      gpsStatus: 'aktif',
+      lat: -7.5562 + (Math.random()-.5)*.05,
+      lng: 110.8316 + (Math.random()-.5)*.05,
+      lastUpdate: new Date().toISOString()
+    };
+    vehicles.push(newV);
+    addNotification('success','✅','Kendaraan Ditambahkan',`${nama} (${plat}) berhasil ditambahkan`,'Baru saja');
+    showToast('✅ Kendaraan berhasil ditambahkan');
+  }
+  saveVehicles(vehicles);
+  renderVehicles();
+  updateStats();
+  updateMapMarkers();
+  resetForm();
+  showPage('home');
+}
+
+function resetForm() {
+  ['v-nama','v-plat','v-warna'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('v-jenis').value='';
+  document.getElementById('v-status').value='tersedia';
+  document.getElementById('editId').value='';
+  document.getElementById('tambahTitle').textContent='Tambah Kendaraan';
+  document.getElementById('btnSimpan').textContent='Simpan Kendaraan';
+  clearErrors('err-v-nama','err-v-plat','err-v-jenis');
+}
+
+function cancelEdit() { resetForm(); showPage('home'); }
+
+let deleteTargetId = null;
+function confirmDeleteVehicle(id) {
+  deleteTargetId = id;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); deleteTargetId=null; }
+function confirmDelete() {
+  if (!deleteTargetId) return;
+  const vehicles = getVehicles().filter(v=>v.id!==deleteTargetId);
+  saveVehicles(vehicles);
+  renderVehicles(); updateStats(); updateMapMarkers();
+  closeConfirm(); showPage('home');
+  showToast('🗑 Kendaraan dihapus');
+}
+
 function editVehicle(id) { openEditModal(id); }
 
 function showDetail(id) {
-const v = getVehicles().find(x=>x.id===id);
-@@ -1382,7 +1436,7 @@ <h2>${v.nama}</h2>
-     </button>
-   </div>
-   <div class="detail-actions">
-      <button class="btn-action btn-action-outline" onclick="editVehicle(${v.id})">
+  const v = getVehicles().find(x=>x.id===id);
+  if (!v) return;
+  const isMotor = v.jenis==='motor';
+  const statusClass = v.status==='disewa'?'disewa':'tersedia';
+  const gpsClass = v.gpsStatus==='aktif'?'aktif':'offline';
+  const lastUp = new Date(v.lastUpdate).toLocaleString('id-ID');
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-hero">
+      <div class="detail-hero-icon">
+        ${isMotor
+          ? `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M6 14l2-8h8l3 6H6z"/></svg>`
+          : `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><rect x="2" y="8" width="20" height="10" rx="2"/><path d="M6 8l2-4h8l2 4"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`}
+      </div>
+      <div class="detail-hero-info">
+        <h2>${v.nama}</h2>
+        <p>${v.plat} · ${v.warna||'—'}</p>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="detail-item-label">Jenis</div>
+        <div class="detail-item-value" style="text-transform:capitalize">${v.jenis}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">Status Sewa</div>
+        <div class="detail-item-value"><span class="status-badge ${statusClass}">${v.status==='disewa'?'Disewa':'Tersedia'}</span></div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">GPS</div>
+        <div class="detail-item-value"><span class="status-badge ${gpsClass}">GPS ${v.gpsStatus}</span></div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">Update Terakhir</div>
+        <div class="detail-item-value" style="font-size:12px;font-weight:600">${lastUp}</div>
+      </div>
+      <div class="detail-item" style="grid-column:1/-1">
+        <div class="detail-item-label">Koordinat GPS</div>
+        <div class="detail-item-value" style="font-size:13px">${v.lat.toFixed(5)}, ${v.lng.toFixed(5)}</div>
+      </div>
+    </div>
+
+    <div class="detail-actions">
+      <button class="btn-action btn-action-blue" onclick="viewOnMap(${v.id})">
+        <i data-lucide="map-pin" size="16"></i> Lihat Lokasi
+      </button>
+      <button class="btn-action btn-action-outline" onclick="showPage('riwayat')">
+        <i data-lucide="history" size="16"></i> Riwayat
+      </button>
+    </div>
+    <div class="detail-actions">
       <button class="btn-action btn-action-outline" onclick="openEditModal(${v.id})">
-       <i data-lucide="edit-2" size="16"></i> Edit Data
-     </button>
-     <button class="btn-action btn-action-red" onclick="confirmDeleteVehicle(${v.id})">
-@@ -1639,6 +1693,88 @@ <h4>${v.nama}</h4>
+        <i data-lucide="edit-2" size="16"></i> Edit Data
+      </button>
+      <button class="btn-action btn-action-red" onclick="confirmDeleteVehicle(${v.id})">
+        <i data-lucide="trash-2" size="16"></i> Hapus
+      </button>
+    </div>
+  `;
+  showPage('detail');
+  lucide.createIcons();
+}
+
+// ─── Maps ─────────────────────────────────────────────────
+let map = null, markers = {};
+
+function initMap() {
+  if (map) return;
+  setTimeout(() => {
+    map = L.map('map', { zoomControl: false }).setView([-7.5562, 110.8316], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19
+    }).addTo(map);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    updateMapMarkers();
+    map.invalidateSize();
+  }, 100);
+}
+
+function makeIcon(color) {
+  const c = color==='aktif' ? '#22C55E' : color==='offline' ? '#EF4444' : '#2563EB';
+  return L.divIcon({
+    html: `<div style="width:28px;height:28px;border-radius:50%;background:${c};border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:12px;">📍</div>`,
+    iconSize: [28,28], iconAnchor: [14,14], popupAnchor: [0,-14], className: ''
+  });
+}
+
+function updateMapMarkers() {
+  if (!map) return;
+  Object.values(markers).forEach(m => map.removeLayer(m));
+  markers = {};
+  getVehicles().forEach(v => {
+    const m = L.marker([v.lat, v.lng], { icon: makeIcon(v.gpsStatus) }).addTo(map);
+    m.bindPopup(`
+      <div class="map-popup">
+        <h4>${v.nama}</h4>
+        <p>${v.plat}</p>
+        <p style="margin-top:4px">GPS: <b style="color:${v.gpsStatus==='aktif'?'var(--green)':'var(--red)'}">•</b> ${v.gpsStatus}</p>
+        <p>${v.lat.toFixed(4)}, ${v.lng.toFixed(4)}</p>
+        <button class="map-popup-btn" onclick="showDetail(${v.id})">Lihat Detail</button>
+      </div>
+    `);
+    markers[v.id] = m;
+  });
+}
+
+function viewOnMap(id) {
+  showPage('maps');
+  setTimeout(() => {
+    if (!map) { initMap(); setTimeout(()=>focusVehicle(id), 500); return; }
+    map.invalidateSize();
+    focusVehicle(id);
+  }, 150);
+}
+
+function focusVehicle(id) {
+  const v = getVehicles().find(x=>x.id===id);
+  if (!v || !map) return;
+  map.flyTo([v.lat, v.lng], 16, { duration: 1 });
+  if (markers[id]) markers[id].openPopup();
+}
+
+function filterMapMarkers() {
+  const q = document.getElementById('mapSearch').value.toLowerCase();
+  const vehicles = getVehicles();
+  vehicles.forEach(v => {
+    if (!markers[v.id]) return;
+    const match = v.nama.toLowerCase().includes(q) || v.plat.toLowerCase().includes(q);
+    markers[v.id].setOpacity(match || !q ? 1 : 0.2);
+  });
+}
+
+function toggleMapFilter() {
+  // Simple toggle all/aktif/offline
+  const vehicles = getVehicles();
+  vehicles.forEach(v => {
+    if (!markers[v.id]) return;
+    const op = markers[v.id].options.opacity;
+    markers[v.id].setOpacity(op === 1 ? 0.3 : 1);
+  });
+}
+
+// ─── GPS Simulation ───────────────────────────────────────
+function simulateGPS() {
+  const vehicles = getVehicles();
+  vehicles.forEach(v => {
+    if (v.gpsStatus === 'aktif') {
+      v.lat += (Math.random()-.5) * 0.003;
+      v.lng += (Math.random()-.5) * 0.003;
+      v.lastUpdate = new Date().toISOString();
+    }
+  });
+  saveVehicles(vehicles);
+  renderVehicles();
+  updateStats();
+  updateMapMarkers();
+  showToast('📍 Lokasi GPS diperbarui');
+}
+
+let autoInterval = null;
+function startAutoUpdate() {
+  if (autoInterval) clearInterval(autoInterval);
+  autoInterval = setInterval(() => {
+    const vehicles = getVehicles();
+    let changed = false;
+    vehicles.forEach(v => {
+      if (v.gpsStatus==='aktif' && Math.random() > .5) {
+        v.lat += (Math.random()-.5)*.001;
+        v.lng += (Math.random()-.5)*.001;
+        v.lastUpdate = new Date().toISOString();
+        changed = true;
+        if (markers[v.id] && map) markers[v.id].setLatLng([v.lat, v.lng]);
+      }
+    });
+    if (changed) { saveVehicles(vehicles); }
+  }, 30000);
+}
+
+// ─── Notifications ────────────────────────────────────────
+function addNotification(type, icon, title, desc, time) {
+  const notifs = getNotifications();
+  notifs.unshift({ id: Date.now(), type, icon, title, desc, time });
+  saveNotifications(notifs.slice(0, 20));
+  document.getElementById('notifDot').style.display = 'block';
+}
+
+function renderNotifications() {
+  const notifs = getNotifications();
+  const container = document.getElementById('notifList');
+  if (!notifs.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-icon"><i data-lucide="bell-off" size="28"></i></div>
+      <div class="empty-title">Tidak Ada Notifikasi</div>
+      <div class="empty-desc">Semua kendaraan dalam kondisi normal</div>
+    </div>`;
+    lucide.createIcons();
+    return;
+  }
+  container.innerHTML = notifs.map(n=>`
+    <div class="notif-item ${n.type}">
+      <div class="notif-icon">${n.icon}</div>
+      <div class="notif-content">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-desc">${n.desc}</div>
+        <div class="notif-time">${n.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function clearNotifications() {
+  saveNotifications([]);
+  renderNotifications();
+  document.getElementById('notifDot').style.display='none';
+}
+
+// ─── Riwayat ──────────────────────────────────────────────
+function renderRiwayat() {
+  const history = getHistory();
+  const container = document.getElementById('riwayatList');
+  if (!history.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-icon"><i data-lucide="route" size="28"></i></div>
+      <div class="empty-title">Belum Ada Riwayat</div>
+      <div class="empty-desc">Riwayat perjalanan akan muncul di sini</div>
+    </div>`;
+    lucide.createIcons();
+    return;
+  }
+  container.innerHTML = `<div class="history-card">${history.map(h=>`
+    <div class="history-item">
+      <div class="history-icon"><i data-lucide="route" size="16"></i></div>
+      <div class="history-info">
+        <div class="history-name">${h.vehicleName}</div>
+        <div class="history-detail">${h.plat} · ${h.rute}</div>
+        <div class="history-detail">${h.startTime} → ${h.endTime}</div>
+      </div>
+      <div class="history-dur">${h.durasi}</div>
+    </div>
+  `).join('')}</div>`;
+  lucide.createIcons();
+}
+
+// ─── Settings ─────────────────────────────────────────────
+const toggleStates = { notif: true, geofence: true, interval: true };
+function toggleSetting(key) {
+  toggleStates[key] = !toggleStates[key];
+  document.getElementById(`toggle-${key}`).classList.toggle('on', toggleStates[key]);
+  showToast(toggleStates[key] ? `✅ ${key} diaktifkan` : `⏸ ${key} dinonaktifkan`);
+}
+
+function exportData() {
+  const data = { vehicles: getVehicles(), exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'rentrack-data.json';
+  a.click();
+  showToast('📥 Data berhasil diekspor');
+}
+
+// ─── Pages ────────────────────────────────────────────────
+const navPages = ['home','maps','tambah','notifikasi','settings'];
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const target = document.getElementById(`page-${page}`);
+  if (target) target.classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const navEl = document.getElementById(`nav-${page}`);
+  if (navEl) navEl.classList.add('active');
+
+  if (page==='home') { renderVehicles(); updateStats(); }
+  if (page==='maps') {
+    setTimeout(()=>{ if (map) map.invalidateSize(); else initMap(); }, 200);
+  }
+  if (page==='notifikasi') { renderNotifications(); document.getElementById('notifDot').style.display='none'; }
+  if (page==='settings') { renderSettingsProfile(); lucide.createIcons(); }
+  if (page==='riwayat') renderRiwayat();
+  if (page==='tambah' && !document.getElementById('editId').value) resetForm();
+
+  window.scrollTo(0,0);
+  lucide.createIcons();
+}
+
+function renderSettingsProfile() {
+  if (!currentUser) return;
+  document.getElementById('profileCardEl').innerHTML = `
+    <div class="profile-card">
+      <div class="profile-avatar">${currentUser.name.charAt(0).toUpperCase()}</div>
+      <div class="profile-info">
+        <div class="profile-name">${currentUser.name}</div>
+        <div class="profile-email">${currentUser.email}</div>
+      </div>
+      <div class="profile-badge">MITRA</div>
+    </div>
+  `;
+  document.getElementById('pwaStatus').textContent = navigator.onLine ? '🟢 Online' : '🔴 Offline';
+}
+
+// ─── Offline ──────────────────────────────────────────────
+function checkOffline() {
+  const banner = document.getElementById('offlineBanner');
+  banner.classList.toggle('show', !navigator.onLine);
+}
 window.addEventListener('online', ()=>{ document.getElementById('offlineBanner').classList.remove('show'); showToast('🌐 Koneksi kembali aktif'); });
 window.addEventListener('offline', ()=>{ document.getElementById('offlineBanner').classList.add('show'); showToast('📡 Mode offline aktif', true); });
 
@@ -203,11 +1766,21 @@ function saveVehicleModal() {
     showToast('🚗 Kendaraan berhasil ditambahkan!');
   }
   saveVehicles(vehicles);
+
+  // ── Direct DOM stat update (triple-guard) ──────────────
+  const _v = getVehicles();
+  const _elT = document.getElementById('stat-total');
+  const _elA = document.getElementById('stat-aktif');
+  const _elO = document.getElementById('stat-offline');
+  if (_elT) _elT.textContent = _v.length;
+  if (_elA) _elA.textContent = _v.filter(x => x.status === 'disewa').length;
+  if (_elO) _elO.textContent = _v.filter(x => x.gpsStatus === 'offline').length;
+
   closeAddModal();
   renderVehicles();
-  updateDashboard();
+  updateStats();
   updateMapMarkers();
-  if (!document.getElementById('page-home').classList.contains('active')) showPage('home');
+  showPage('home');
 }
 
 // updateDashboard — fungsi resmi (alias updateStats)
@@ -216,3 +1789,17 @@ function updateDashboard() { updateStats(); }
 // ─── Init ─────────────────────────────────────────────────
 checkSession();
 lucide.createIcons();
+</script>
+
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.error('SW registration failed:', err));
+  });
+}
+</script>
+</body>
+</html>
